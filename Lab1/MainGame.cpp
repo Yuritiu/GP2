@@ -46,7 +46,9 @@ void MainGame::initSystems()
 	texture2.load("..\\res\\rock.jpg"); //load texture
 	bricksTexture.load("..\\res\\brickwall.jpg");
 	bricksNormalMap.load("..\\res\\normal.jpg");
+	floor.load("..\\res\\Floor\\floor.jpg");
 	bumpMapping.loadNormals("..\\res\\n.jpg");
+	floorNormal.loadNormals("..\\res\\Floor\\floorN.jpg");
 
 	std::vector<std::string> faces = 
 	{
@@ -312,69 +314,85 @@ void MainGame::drawGame()
 	glUniform3f(viewPosLoc, camP.x, camP.y, camP.z);
 
 	glActiveTexture(GL_TEXTURE0);
-	texture1.Bind(0);   // diffuse map
-	//glActiveTexture(GL_TEXTURE1);
-	//bumpMapping.Bind(0);  // normal map
+	floor.Bind(0);   // diffuse map
+	glActiveTexture(GL_TEXTURE1);
+	floorNormal.Bind(1);  // normal map
 
 	meshQuad.drawVertexes();
 
 
 	//wall1
-	transform.SetPos(glm::vec3(25.0f, 0.0f, 0.0f));
+	transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
 	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 5.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
 	
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
+
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
-	
-	glActiveTexture(GL_TEXTURE0);
-	bricksTexture.Bind(0);
-	glActiveTexture(GL_TEXTURE1);
-	bricksNormalMap.Bind(0);
-	
-	bump.Update(transform, myCamera);
+
+	glm::vec3 cp = myCamera.getPos();
+	glUniform3f(viewPosLoc, cp.x, cp.y, cp.z);
+
+	glActiveTexture(GL_TEXTURE0); bricksTexture.Bind(0);
+	glActiveTexture(GL_TEXTURE1); bricksNormalMap.Bind(1);
+
 	meshQuad.drawVertexes();
-
-	//wall2
-	transform.SetPos(glm::vec3(-25.0f, 0.0f, 0.0f));
-	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 5.0f));
 	
+	//wall2
+	transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
+	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
+
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
 
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
-	bricksNormalMap.Bind(0);
+	bricksNormalMap.Bind(1);
 
 	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();
 
 	//wall3
-	transform.SetPos(glm::vec3(0.0f, 0.0f, 25.0f));
+	transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
 	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 5.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
 	
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
+
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
 
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
-	bricksNormalMap.Bind(0);
+	bricksNormalMap.Bind(1);
 
 	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();
 
 	//wall4
-	transform.SetPos(glm::vec3(0.0f, 0.0f, -25.0f));
+	transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
 	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 5.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
 	
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
+
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
 
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
-	bricksNormalMap.Bind(0);
+	bricksNormalMap.Bind(1);
 
 	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();

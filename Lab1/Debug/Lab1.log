@@ -1,4 +1,4 @@
 ﻿C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(534,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (Lab2.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   MainGame.cpp
-C:\Users\Benfi\Downloads\GP2 CW\GP2\Lab1\MainGame.cpp(251,36): warning C4305: 'argument': truncation from 'double' to 'float'
+C:\Users\Benfi\Downloads\GP2 CW\GP2\Lab1\MainGame.cpp(253,36): warning C4305: 'argument': truncation from 'double' to 'float'
   Lab1.vcxproj -> C:\Users\Benfi\Downloads\GP2 CW\GP2\Debug\Lab1.exe

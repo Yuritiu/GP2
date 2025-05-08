@@ -58,6 +58,8 @@ private:
 	Texture bricksTexture;
 	Texture bricksNormalMap;
 	Texture bumpMapping;
+	Texture floor;
+	Texture floorNormal;
 	
 	SkyBox skybox;
 	
