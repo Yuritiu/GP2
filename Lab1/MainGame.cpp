@@ -2,6 +2,7 @@
 #include "Camera.h"
 #include <iostream>
 #include <string>
+#include <glm/gtc/type_ptr.hpp>
 
 
 Transform transform;
@@ -291,15 +292,32 @@ void MainGame::drawGame()
 	transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f)); 
 	
-	glUniform2f(tilingLoc, 50.0f, 50.0f); 
-	
-	glActiveTexture(GL_TEXTURE0);
-	texture2.Bind(0);
-	glActiveTexture(GL_TEXTURE1);
-	bumpMapping.Bind(0);
+	bump.Bind();
 
-	bump.Update(transform, myCamera);
+	GLint modelLoc = glGetUniformLocation(bump.getID(), "model");
+	glm::mat4 model = transform.GetModel();  // your existing Transform helper
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+	GLint viewLoc = glGetUniformLocation(bump.getID(), "view");
+	glm::mat4 view = myCamera.getView();
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+	GLint projLoc = glGetUniformLocation(bump.getID(), "projection");
+	glm::mat4 proj = myCamera.getProjection();
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+
+	glUniform2f(tilingLoc, 50.0f, 50.0f);
+	GLint viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+	glm::vec3 camP = myCamera.getPos();
+	glUniform3f(viewPosLoc, camP.x, camP.y, camP.z);
+
+	glActiveTexture(GL_TEXTURE0);
+	texture1.Bind(0);   // diffuse map
+	//glActiveTexture(GL_TEXTURE1);
+	//bumpMapping.Bind(0);  // normal map
+
 	meshQuad.drawVertexes();
+
 
 	//wall1
 	transform.SetPos(glm::vec3(25.0f, 0.0f, 0.0f));
