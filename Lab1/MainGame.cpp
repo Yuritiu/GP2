@@ -49,8 +49,10 @@ void MainGame::initSystems()
 	bricksTexture.load("..\\res\\brickwall.jpg");
 	bricksNormalMap.load("..\\res\\normal.jpg");
 	floor.load("..\\res\\Floor\\floor.jpg");
+	monkey.load("..\\res\\Monkey\\monkey.jpg");
 	bumpMapping.loadNormals("..\\res\\n.jpg");
 	floorNormal.loadNormals("..\\res\\Floor\\floorN.jpg");
+	monkeyN.loadNormals("..\\res\\Monkey\\monkeyN.jpg");
 
 	std::vector<std::string> faces =
 	{
@@ -95,7 +97,7 @@ void MainGame::initSystems()
 
 	// Ambient–Diffuse–Specular settings
 	loc = glGetUniformLocation(bump.getID(), "lightPos");
-	glUniform3f(loc, 0.0f, 10.0f, 0.0f);   // light position
+	glUniform3f(loc, 0.0f, 50.0f, 0.0f);   // light position
 	loc = glGetUniformLocation(bump.getID(), "lightColor");
 	glUniform3f(loc, 1.0f, 1.0f, 1.0f);   // white light
 	loc = glGetUniformLocation(bump.getID(), "ambientColor");
@@ -343,7 +345,18 @@ void MainGame::drawGame()
 
 
 	// Bind the shader 
-	bump.Bind();
+	bump.Bind();                                       
+	glUniform1f(glGetUniformLocation(bump.getID(), "brightness"), 1.0f);
+
+	GLint loc = glGetUniformLocation(bump.getID(), "lightPos");
+	if (loc == -1) {
+		std::cout << "lightPos uniform not found in bump shader" << std::endl;
+	}
+	else {
+		// use whatever lightPos you want here:
+		glm::vec3 lightPos(5.0f, 20.0f, 5.0f);
+		glUniform3f(loc, lightPos.x, lightPos.y, lightPos.z);
+	}
 
 	GLint locD = glGetUniformLocation(bump.getID(), "diffuse");
 	glUniform1i(locD, 0); // sampler2D diffuse  → texture unit 0
@@ -466,6 +479,41 @@ void MainGame::drawGame()
 
 	meshQuad.drawVertexes();
 
+	// draw the monkey 
+	bump.Bind();
+	glUniform1f(glGetUniformLocation(bump.getID(), "brightness"), 6.0f);
+
+	bump.setMat4("view", myCamera.getView());
+	bump.setMat4("projection", myCamera.getProjection());
+	bump.setVec3("lightPos", lightPos);
+	bump.setFloat("lightConstant", 1.0f);
+	bump.setFloat("lightLinear", 0.014f);
+	bump.setFloat("lightQuadratic", 0.0007f);
+	bump.setVec3("viewPos", myCamera.getPos());
+
+	Transform monkeyTransform;
+	monkeyTransform.SetPos(glm::vec3(0.0f, 0.0f, 0.0f));
+	monkeyTransform.SetRot(glm::vec3(0.0f, counter, 0.0f));
+	monkeyTransform.SetScale(glm::vec3(0.5f, 0.5f, 0.5f));
+	glm::mat4 monkeyModel = monkeyTransform.GetModel();
+
+	glUniform2f(tilingLoc, 0.5f, 0.5f);
+
+	glActiveTexture(GL_TEXTURE0);
+	monkey.Bind(0);
+	glUniform1i(glGetUniformLocation(bump.getID(), "diffuse"), 0);
+	glActiveTexture(GL_TEXTURE1);
+	monkeyN.Bind(1);
+	glUniform1i(glGetUniformLocation(bump.getID(), "normalT"), 1);
+	
+	glUniform3f(glGetUniformLocation(bump.getID(), "diffuseColor"), 0.8f, 0.1f, 0.1f);
+	glUniform3f(glGetUniformLocation(bump.getID(), "specColor"), 1.0f, 1.0f, 1.0f);
+	glUniform1f(glGetUniformLocation(bump.getID(), "shininess"), 32.0f);
+
+	bump.setMat4("model", monkeyModel);
+
+	mesh1.draw();
+
 	//Shadows
 
 	glEnable(GL_BLEND);
@@ -475,68 +523,73 @@ void MainGame::drawGame()
 	shadowShader.Bind();
 	shadowShader.setMat4("view", myCamera.getView());
 	shadowShader.setMat4("projection", myCamera.getProjection());
-	shadowShader.setFloat("shadowAlpha", 0.5f);
+	shadowShader.setFloat("shadowAlpha", 0.8f);
 
-	//Floor Shadow
-	transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
-	transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f));
-	
+	// small lift to avoid z-fight
+	glm::mat4 adjustY = glm::translate(glm::mat4(1.0f), glm::vec3(0, -2.39f, 0));
+
+	//Project monkey onto floor
 	{
-		glm::mat4 flat = shadowMat * transform.GetModel();
+		Transform monkeyT;
+		monkeyT.SetPos(glm::vec3(0, 0, 0));       
+		monkeyT.SetRot(glm::vec3(0, counter, 0));
+		monkeyT.SetScale(glm::vec3(0.8f));
 
-		float yOffset = -2.39f;
-		glm::mat4 adjustY = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, yOffset, 0.0f));
+		glm::mat4 monkeyModel = monkeyT.GetModel();
 
-		glm::mat4 flatAdjusted = adjustY * flat;
+		// Flatten onto floor plane
+		glm::mat4 flat = shadowMat * monkeyModel;
 
-		shadowShader.setMat4("model", flatAdjusted);
-		meshQuad.drawVertexes();
+		// Apply small Y-offset
+		shadowShader.setMat4("model", adjustY * flat);
+
+		// Draw only the monkey’s mesh
+		mesh1.draw();
 	}
 
-	// Wall1 Shadow
-	transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
-	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	{
-		glm::mat4 flat = shadowMatWallXpos * transform.GetModel();
-		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { -0.01f, 0, 0 }); 
-		shadowShader.setMat4("model",adjust * flat);
-		meshQuad.drawVertexes();
-	}
+	//// Wall1 Shadow
+	//transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
+	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMatWallXpos * transform.GetModel();
+	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { -0.01f, 0, 0 }); 
+	//	shadowShader.setMat4("model",adjust * flat);
+	//	meshQuad.drawVertexes();
+	//}
 
-	// Wall2 Shadow
-	transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
-	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	{
-		glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
-		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { +0.01f, 0, 0 });
-		shadowShader.setMat4("model", adjust* flat);
-		meshQuad.drawVertexes();
-	}
+	//// Wall2 Shadow
+	//transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
+	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
+	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { +0.01f, 0, 0 });
+	//	shadowShader.setMat4("model", adjust* flat);
+	//	meshQuad.drawVertexes();
+	//}
 
-	// Wall3 Shadow
-	transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
-	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	{
-		glm::mat4 flat = shadowMatWallZpos * transform.GetModel();
-		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, -0.01f });
-		shadowShader.setMat4("model", adjust* flat);
-		meshQuad.drawVertexes();
-	}
-	
-	// Wall4 Shadow
-	transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
-	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	{
-		glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
-		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, +0.01f });
-		shadowShader.setMat4("model", adjust* flat);
-		meshQuad.drawVertexes();
-	}
+	//// Wall3 Shadow
+	//transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
+	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMatWallZpos * transform.GetModel();
+	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, -0.01f });
+	//	shadowShader.setMat4("model", adjust* flat);
+	//	meshQuad.drawVertexes();
+	//}
+	//
+	//// Wall4 Shadow
+	//transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
+	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
+	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, +0.01f });
+	//	shadowShader.setMat4("model", adjust* flat);
+	//	meshQuad.drawVertexes();
+	//}
 
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);

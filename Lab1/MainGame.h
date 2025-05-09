@@ -73,6 +73,8 @@ private:
 	Texture bumpMapping;
 	Texture floor;
 	Texture floorNormal;
+	Texture monkey;
+	Texture monkeyN;
 	
 	SkyBox skybox;
 	
