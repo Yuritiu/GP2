@@ -59,25 +59,60 @@ void MainGame::initSystems()
 		"..\\res\\Skybox\\sp2_bk.png",
 		"..\\res\\Skybox\\sp2_ft.png"
 	};
+
 	skybox.init(faces);
 
 	GLint loc;
+
+	//noBump.Bind();
+	//
+	//glUniform1i(glGetUniformLocation(noBump.getID(), "diffuse"), 0);
+	//glUniform1i(glGetUniformLocation(noBump.getID(), "normalT"), 1);
+	//tilingLoc = glGetUniformLocation(noBump.getID(), "tiling");
+
+	//// camera position
+	//loc = glGetUniformLocation(noBump.getID(), "viewPos");
+	//glUniform3f(loc, myCamera.getPos().x, myCamera.getPos().y, myCamera.getPos().z);
+	//
+	//loc = glGetUniformLocation(noBump.getID(), "lightPos");
+	//glUniform3f(loc, 0.0f, 1.0f, 0.0f);
+	//loc = glGetUniformLocation(noBump.getID(), "lightColor");
+	//glUniform3f(loc, 1.0f, 1.0f, 1.0f);
+	//loc = glGetUniformLocation(noBump.getID(), "ambientColor");
+	//glUniform3f(loc, 0.1f, 0.1f, 0.1f);
+
 	bump.Bind();
+
 	glUniform1i(glGetUniformLocation(bump.getID(), "diffuse"), 0);
 	glUniform1i(glGetUniformLocation(bump.getID(), "normalT"), 1);
 	tilingLoc = glGetUniformLocation(bump.getID(), "tiling");
 
 	// camera position
-	loc = glGetUniformLocation(noBump.getID(), "viewPos");
+	loc = glGetUniformLocation(bump.getID(), "viewPos");
 	glUniform3f(loc, myCamera.getPos().x, myCamera.getPos().y, myCamera.getPos().z);
 
-	// light position & color
-	loc = glGetUniformLocation(noBump.getID(), "lightPos");
-	glUniform3f(loc, 2.0f, 4.0f, 2.0f);                // example
-	loc = glGetUniformLocation(noBump.getID(), "lightColor");
-	glUniform3f(loc, 1.0f, 1.0f, 1.0f);
-	loc = glGetUniformLocation(noBump.getID(), "ambientColor");
-	glUniform3f(loc, 0.1f, 0.1f, 0.1f);
+	// Ambient–Diffuse–Specular settings
+	loc = glGetUniformLocation(bump.getID(), "lightPos");
+	glUniform3f(loc, 0.0f, 10.0f, 0.0f);   // light position
+	loc = glGetUniformLocation(bump.getID(), "lightColor");
+	glUniform3f(loc, 1.0f, 1.0f, 1.0f);   // white light
+	loc = glGetUniformLocation(bump.getID(), "ambientColor");
+	glUniform3f(loc, 0.1f, 0.1f, 0.1f);   // low ambient
+
+	GLint cLoc = glGetUniformLocation(bump.getID(), "lightConstant");
+	GLint lLoc = glGetUniformLocation(bump.getID(), "lightLinear");
+	GLint qLoc = glGetUniformLocation(bump.getID(), "lightQuadratic");
+	glUniform1f(cLoc, 1.0f);
+	glUniform1f(lLoc, 0.014f);
+	glUniform1f(qLoc, 0.0007f);
+
+	// Cache locations for uniforms you’ll update each frame
+	tilingLoc = glGetUniformLocation(bump.getID(), "tiling");
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+	modelLoc = glGetUniformLocation(bump.getID(), "model");
+	viewLoc = glGetUniformLocation(bump.getID(), "view");
+	projLoc = glGetUniformLocation(bump.getID(), "projection");
+
 
 	myCamera.initCamera(glm::vec3(2, 0, -4), 70.0f, (float)_gameDisplay.getWidth()/_gameDisplay.getHeight(), 0.01f, 1000.0f);
 
@@ -294,22 +329,14 @@ void MainGame::drawGame()
 	transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f)); 
 	
-	bump.Bind();
-
-	GLint modelLoc = glGetUniformLocation(bump.getID(), "model");
-	glm::mat4 model = transform.GetModel();  // your existing Transform helper
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-	GLint viewLoc = glGetUniformLocation(bump.getID(), "view");
-	glm::mat4 view = myCamera.getView();
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-	GLint projLoc = glGetUniformLocation(bump.getID(), "projection");
-	glm::mat4 proj = myCamera.getProjection();
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 50.0f);
-	GLint viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+	
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+	
 	glm::vec3 camP = myCamera.getPos();
 	glUniform3f(viewPosLoc, camP.x, camP.y, camP.z);
 
@@ -331,12 +358,16 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
 	glm::vec3 cp = myCamera.getPos();
 	glUniform3f(viewPosLoc, cp.x, cp.y, cp.z);
 
-	glActiveTexture(GL_TEXTURE0); bricksTexture.Bind(0);
-	glActiveTexture(GL_TEXTURE1); bricksNormalMap.Bind(1);
+	glActiveTexture(GL_TEXTURE0); 
+	bricksTexture.Bind(0);
+	glActiveTexture(GL_TEXTURE1); 
+	bricksNormalMap.Bind(1);
 
 	meshQuad.drawVertexes();
 	
@@ -344,57 +375,69 @@ void MainGame::drawGame()
 	transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
 	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	
+
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
 
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+
+	glm::vec3 cp1 = myCamera.getPos();
+	glUniform3f(viewPosLoc, cp1.x, cp1.y, cp1.z);
+
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
 	bricksNormalMap.Bind(1);
 
-	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();
 
 	//wall3
 	transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
 	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	
+
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+
+	glm::vec3 cp2 = myCamera.getPos();
+	glUniform3f(viewPosLoc, cp2.x, cp2.y, cp2.z);
 
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
 	bricksNormalMap.Bind(1);
 
-	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();
 
 	//wall4
 	transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
 	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	
+
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	
+	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
+
+	glm::vec3 cp3 = myCamera.getPos();
+	glUniform3f(viewPosLoc, cp3.x, cp3.y, cp3.z);
 
 	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
 	glActiveTexture(GL_TEXTURE1);
 	bricksNormalMap.Bind(1);
 
-	bump.Update(transform, myCamera);
 	meshQuad.drawVertexes();
 
 	counter = counter + 0.03f;

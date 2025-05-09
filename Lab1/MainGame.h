@@ -36,6 +36,10 @@ private:
 	float _lastFrameTime = 0.0f;
 
 	GLint tilingLoc = -1;
+	GLint viewPosLoc;
+	GLint modelLoc;
+	GLint viewLoc;
+	GLint projLoc;
 	Display _gameDisplay;
 	GameState _gameState;
 
