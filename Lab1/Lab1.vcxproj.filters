@@ -130,6 +130,12 @@
     <None Include="..\res\shadow.frag">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\res\reflect.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\res\reflect.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Object Include="..\res\monkey3.obj">

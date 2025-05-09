@@ -85,7 +85,6 @@ GLuint SkyBox::loadCubemap(const std::vector<std::string>& faces)
             stbi_image_free(data);
         }
         else {
-            // error handling…
             stbi_image_free(data);
         }
     }

@@ -44,6 +44,7 @@ void MainGame::initSystems()
 	bump.init("..\\res\\bump.vert", "..\\res\\bump.frag");
 	noBump.init("..\\res\\noBump.vert", "..\\res\\noBump.frag");
 	shadowShader.init("..\\res\\shadow.vert", "..\\res\\shadow.frag");
+	reflectShader.init("..\\res\\reflect.vert", "..\\res\\reflect.frag");
 	texture1.load("..\\res\\bricks.jpg"); //load texture
 	texture2.load("..\\res\\rock.jpg"); //load texture
 	bricksTexture.load("..\\res\\brickwall.jpg");
@@ -158,8 +159,10 @@ void MainGame::initSystems()
 
 	meshQuad.loadVertexs(quadVerts, 6);
 
+
+	// shadows
 	glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
-	glm::vec4 L(lightPos, 1.0f); // your point light
+	glm::vec4 L(lightPos, 1.0f); 
 
 	float d = glm::dot(plane, L);
 	
@@ -182,6 +185,34 @@ void MainGame::initSystems()
 	glm::vec4 wallXnegPlane(1.0f, 0.0f, 0.0f, 25.0f);
 	float dXneg = glm::dot(wallXnegPlane, L);
 
+	// reflection
+	screenWidth = _gameDisplay.getWidth();
+	screenHeight = _gameDisplay.getHeight();
+
+	glGenTextures(1, &reflectTex);
+	glBindTexture(GL_TEXTURE_2D, reflectTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight,
+		0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glGenFramebuffers(1, &reflectFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+		GL_TEXTURE_2D, reflectTex, 0);
+	
+	GLuint depthRBO;
+	glGenRenderbuffers(1, &depthRBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+		screenWidth, screenHeight);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+		GL_RENDERBUFFER, depthRBO);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		std::cerr << "Reflection FBO not complete!\n";
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void MainGame::gameLoop()
@@ -342,6 +373,38 @@ void MainGame::drawGame()
 	glDepthMask(GL_FALSE);
 	skybox.draw(myCamera);
 	glDepthMask(GL_TRUE);
+
+	// Reflection
+	glm::mat4 V = myCamera.getView();
+
+	// 2) Extract the forward (–Z) direction from it:
+	glm::vec3 camDir = glm::normalize(glm::vec3(
+		-V[0][2],
+		-V[1][2],
+		-V[2][2]
+	));
+
+	// 3) Compute lookAt
+	glm::vec3 camPos = myCamera.getPos();
+	glm::vec3 lookAt = camPos + camDir;
+
+	// 4) Mirror across your floor plane at y = h
+	float h = -2.5f;
+	glm::vec3 mirPos = { camPos.x, 2 * h - camPos.y, camPos.z };
+	glm::vec3 mirLook = { lookAt.x, 2 * h - lookAt.y, lookAt.z };
+	glm::vec3 mirUp = { 0, -1, 0 };
+
+	// 5) Build mirrored view:
+	glm::mat4 mirView = glm::lookAt(mirPos, mirLook, mirUp);
+
+	// Then bind your FBO and render with:
+	bump.Bind();
+	bump.setMat4("view", mirView);
+	bump.setMat4("projection", myCamera.getProjection());
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, screenWidth, screenHeight);
+
 
 
 	// Bind the shader 
@@ -590,6 +653,28 @@ void MainGame::drawGame()
 	//	shadowShader.setMat4("model", adjust* flat);
 	//	meshQuad.drawVertexes();
 	//}
+
+
+	// Bind a simple textured‐quad shader for the reflection
+	reflectShader.Bind();
+	reflectShader.setMat4("view", myCamera.getView());
+	reflectShader.setMat4("projection", myCamera.getProjection());
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, reflectTex);
+	reflectShader.setInt("reflectTex", 0);
+
+	Transform t;
+	t.SetPos(glm::vec3(0.0f, 0.0f, 10.0f));
+	t.SetRot((glm::vec3(-glm::half_pi<float>(), 0, 0)));
+	t.SetScale((glm::vec3(10, 10, 5)));
+
+//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+
+	reflectShader.setMat4("model", t.GetModel());
+	meshQuad.drawVertexes();
+
 
 	glDepthMask(GL_TRUE);
 	glDisable(GL_BLEND);

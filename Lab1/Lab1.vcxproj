@@ -104,6 +104,8 @@
     <None Include="..\res\fogShader.vert" />
     <None Include="..\res\noBump.frag" />
     <None Include="..\res\noBump.vert" />
+    <None Include="..\res\reflect.frag" />
+    <None Include="..\res\reflect.vert" />
     <None Include="..\res\Rim.frag" />
     <None Include="..\res\Rim.vert" />
     <None Include="..\res\shaderToon.frag" />

@@ -40,6 +40,13 @@ private:
 	GLint modelLoc;
 	GLint viewLoc;
 	GLint projLoc;
+
+	// Reflection FBO
+	GLuint reflectFBO;
+	GLuint reflectTex;
+	int screenWidth, screenHeight;
+
+
 	Display _gameDisplay;
 	GameState _gameState;
 
@@ -54,6 +61,7 @@ private:
 	Shader noBump;
 	Shader what;
 	Shader shadowShader;
+	Shader reflectShader;
 	
 	glm::vec3 lightPos = glm::vec3(0.0f, 10.0f, 0.0f);
 	glm::mat4 shadowMat;
