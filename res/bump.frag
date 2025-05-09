@@ -6,43 +6,45 @@ in VS_OUT {
     mat3  TBN;
 } fs_in;
 
-uniform sampler2D diffuse;   // bind your color map here
-uniform sampler2D normalT;   // bind your normal map here
-uniform vec2 tiling;   // how many times to repeat the texture
-
-uniform vec3 lightPos;
-uniform vec3 lightColor;
-uniform vec3 ambientColor;
-uniform vec3 viewPos;
-
 out vec4 FragColour;
 
+// texture samplers
+uniform sampler2D diffuse;   // unit 0
+uniform sampler2D normalT;   // unit 1
+uniform vec2     tiling;     // how many times to repeat
+
+// lighting uniforms 
+uniform vec3 lightPos;       // world-space light position
+uniform vec3 lightColor;     // e.g. (1,1,1)
+uniform vec3 ambientColor;   // e.g. (0.1,0.1,0.1)
+uniform vec3 viewPos;        // camera position
+
+uniform float lightConstant;   // e.g. 1.0
+uniform float lightLinear;     // e.g. 0.014
+uniform float lightQuadratic;  // e.g. 0.0007
+
 void main() {
-    vec2 uv = fs_in.tC * tiling;
+    vec2 uv    = fs_in.tC * tiling;
+    vec3  color = texture(diffuse, uv).rgb;
+    vec3  nmap  = texture(normalT, uv).rgb * 2.0 - 1.0; 
+    vec3  norm  = normalize(fs_in.TBN * nmap);
 
-    vec3 nmap   = texture(normalT, uv).rgb;
-    vec3 normal = normalize(nmap * 2.0 - 1.0);
-    normal       = normalize(fs_in.TBN * normal);
+    float dist = length(lightPos - fs_in.FragPos);
+    float attenuation = 1.0 
+                      / (lightConstant 
+                         + lightLinear * dist 
+                         + lightQuadratic * dist * dist);
+    vec3 ambientTerm = ambientColor * color * attenuation;
 
-    vec3 color = texture(diffuse, uv).rgb;
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    float diffStrength = max(dot(norm, lightDir), 0.0);
+    vec3 diffuseTerm = lightColor * diffStrength * attenuation * color;
 
-    vec3 ambient = ambientColor * color;
+    vec3 viewDir   = normalize(viewPos - fs_in.FragPos);
+    vec3 reflectDir= reflect(-lightDir, norm);
+    float specStrength = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+    vec3 specularTerm  = lightColor * specStrength * attenuation;
 
-    vec3 L = normalize(lightPos - fs_in.FragPos);
-    float diff = max(dot(normal, L), 0.0);
-    vec3 diffuseCol = diff * lightColor * color;
-
-    vec3 V = normalize(viewPos - fs_in.FragPos);
-    vec3 R = reflect(-L, normal);
-    float spec = pow(max(dot(V, R), 0.0), 32.0);
-    vec3 specular = spec * lightColor;
-
-    float distance    = length(lightPos - FragPos);
-    float attenuation = 1.0 / (lightConstant + lightLinear  * distance + lightQuadratic * (distance * distance));
-
-    vec3 ambient  = ambientColor  * attenuation;
-    vec3 diffuse  = diffuseColor  * attenuation * max(dot(norm, lightDir), 0.0);
-    vec3 specular = specColor     * attenuation * pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-
-    FragColour = vec4(ambient + diffuseCol + specular, 1.0);
+    vec3 result = ambientTerm + diffuseTerm + specularTerm;
+    FragColour = vec4(result, 1.0);
 }

@@ -124,6 +124,12 @@
     <None Include="..\res\skybox.vert">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="..\res\shadow.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\res\shadow.frag">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Object Include="..\res\monkey3.obj">

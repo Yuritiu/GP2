@@ -26,10 +26,10 @@ void MainGame::run()
 
 void MainGame::initSystems()
 {
-	_gameDisplay.initDisplay(); 
+	_gameDisplay.initDisplay();
 	//whistle = audioDevice.loadSound("..\\res\\bang.wav");
 	//backGroundMusic = audioDevice.loadSound("..\\res\\background.wav");
-	
+
 	//hide the cursor and keep it in the window
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -42,7 +42,8 @@ void MainGame::initSystems()
 	what.init("..\\res\\what.vert", "..\\res\\what.frag");
 	bump.init("..\\res\\bump.vert", "..\\res\\bump.frag");
 	noBump.init("..\\res\\noBump.vert", "..\\res\\noBump.frag");
-	texture1.load ("..\\res\\bricks.jpg"); //load texture
+	shadowShader.init("..\\res\\shadow.vert", "..\\res\\shadow.frag");
+	texture1.load("..\\res\\bricks.jpg"); //load texture
 	texture2.load("..\\res\\rock.jpg"); //load texture
 	bricksTexture.load("..\\res\\brickwall.jpg");
 	bricksNormalMap.load("..\\res\\normal.jpg");
@@ -50,7 +51,7 @@ void MainGame::initSystems()
 	bumpMapping.loadNormals("..\\res\\n.jpg");
 	floorNormal.loadNormals("..\\res\\Floor\\floorN.jpg");
 
-	std::vector<std::string> faces = 
+	std::vector<std::string> faces =
 	{
 		"..\\res\\Skybox\\sp2_rt.png",
 		"..\\res\\Skybox\\sp2_lf.png",
@@ -114,7 +115,7 @@ void MainGame::initSystems()
 	projLoc = glGetUniformLocation(bump.getID(), "projection");
 
 
-	myCamera.initCamera(glm::vec3(2, 0, -4), 70.0f, (float)_gameDisplay.getWidth()/_gameDisplay.getHeight(), 0.01f, 1000.0f);
+	myCamera.initCamera(glm::vec3(2, 0, -4), 70.0f, (float)_gameDisplay.getWidth() / _gameDisplay.getHeight(), 0.01f, 1000.0f);
 
 	counter = 1.0f;
 
@@ -130,7 +131,7 @@ void MainGame::initSystems()
 		Vertex({-0.5f, 0.0f, -0.5f}, {0.0f, 0.0f}),
 	};
 	for (auto& v : quadVerts) v.normal = { 0,1,0 };
-	
+
 	for (size_t i = 0; i < 6; i += 3) {
 		Vertex& v0 = quadVerts[i + 0];
 		Vertex& v1 = quadVerts[i + 1];
@@ -154,6 +155,17 @@ void MainGame::initSystems()
 	}
 
 	meshQuad.loadVertexs(quadVerts, 6);
+
+	glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);          // floor at y=0
+	glm::vec4 L(lightPos.x, lightPos.y, lightPos.z, 1.0f);  // your point light
+
+	float d = glm::dot(plane, L);
+	shadowMat = glm::mat4(
+		d - L.x * plane.x, -L.x * plane.y, -L.x * plane.z, -L.x * plane.w,
+		-L.y * plane.x, d - L.y * plane.y, -L.y * plane.z, -L.y * plane.w,
+		-L.z * plane.x, -L.z * plane.y, d - L.z * plane.z, -L.z * plane.w,
+		-L.w * plane.x, -L.w * plane.y, -L.w * plane.z, d - L.w * plane.w
+	);
 }
 
 void MainGame::gameLoop()
@@ -327,16 +339,16 @@ void MainGame::drawGame()
 	//floor
 	transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
 	transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
-	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f)); 
-	
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f));
+
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 50.0f);
-	
+
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
-	
+
 	glm::vec3 camP = myCamera.getPos();
 	glUniform3f(viewPosLoc, camP.x, camP.y, camP.z);
 
@@ -352,25 +364,25 @@ void MainGame::drawGame()
 	transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
 	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
 	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	
+
 	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(transform.GetModel()));
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
-	
+
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
 	glm::vec3 cp = myCamera.getPos();
 	glUniform3f(viewPosLoc, cp.x, cp.y, cp.z);
 
-	glActiveTexture(GL_TEXTURE0); 
+	glActiveTexture(GL_TEXTURE0);
 	bricksTexture.Bind(0);
-	glActiveTexture(GL_TEXTURE1); 
+	glActiveTexture(GL_TEXTURE1);
 	bricksNormalMap.Bind(1);
 
 	meshQuad.drawVertexes();
-	
+
 	//wall2
 	transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
 	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
@@ -404,7 +416,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
-	
+
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
 	glm::vec3 cp2 = myCamera.getPos();
@@ -427,7 +439,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
 	glUniform2f(tilingLoc, 50.0f, 5.0f);
-	
+
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
 	glm::vec3 cp3 = myCamera.getPos();
@@ -439,6 +451,65 @@ void MainGame::drawGame()
 	bricksNormalMap.Bind(1);
 
 	meshQuad.drawVertexes();
+
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glDepthMask(GL_FALSE);
+
+	//shadowShader.Bind();
+	//shadowShader.setMat4("view", myCamera.getView());
+	//shadowShader.setMat4("projection", myCamera.getProjection());
+	//shadowShader.setFloat("shadowAlpha", 0.5f);
+
+	////Floor Shadow
+	//transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
+	//transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f));
+	//{
+	//	glm::mat4 flat = shadowMat * transform.GetModel();
+	//	shadowShader.setMat4("model", flat);
+	//	meshQuad.drawVertexes();
+	//}
+
+	//// Wall1 Shadow
+	//transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
+	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMat * transform.GetModel();
+	//	shadowShader.setMat4("model", flat);
+	//	meshQuad.drawVertexes();
+	//}
+
+	//// Wall2 Shadow
+	//transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
+	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMat * transform.GetModel();
+	//	shadowShader.setMat4("model", flat);
+	//	meshQuad.drawVertexes();
+	//}
+
+	//// Wall3 Shadow
+	//transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
+	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMat * transform.GetModel();
+	//	shadowShader.setMat4("model", flat);
+	//	meshQuad.drawVertexes();
+	//}
+	//
+	//// Wall4 Shadow
+	//transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
+	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMat * transform.GetModel();
+	//	shadowShader.setMat4("model", flat);
+	//	meshQuad.drawVertexes();
+	//}
 
 	counter = counter + 0.03f;
 

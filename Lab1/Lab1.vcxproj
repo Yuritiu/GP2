@@ -108,6 +108,8 @@
     <None Include="..\res\Rim.vert" />
     <None Include="..\res\shaderToon.frag" />
     <None Include="..\res\shaderToon.vert" />
+    <None Include="..\res\shadow.frag" />
+    <None Include="..\res\shadow.vert" />
     <None Include="..\res\skybox.frag" />
     <None Include="..\res\skybox.vert" />
     <None Include="..\res\what.frag" />
