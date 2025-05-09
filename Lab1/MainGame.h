@@ -57,6 +57,11 @@ private:
 	
 	glm::vec3 lightPos = glm::vec3(0.0f, 10.0f, 0.0f);
 	glm::mat4 shadowMat;
+	glm::mat4 shadowMatFloor,
+		shadowMatWallXpos,
+		shadowMatWallXneg,
+		shadowMatWallZpos,
+		shadowMatWallZneg;
 
 	// Walls and Floor Mesh
 	Mesh meshQuad;

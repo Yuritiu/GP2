@@ -33,6 +33,7 @@ void MainGame::initSystems()
 	//hide the cursor and keep it in the window
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
+	glEnable(GL_DEPTH_TEST);
 
 	mesh1.loadModel("..\\res\\monkey3.obj");
 	mesh2.loadModel("..\\res\\Ball.obj");
@@ -114,7 +115,6 @@ void MainGame::initSystems()
 	viewLoc = glGetUniformLocation(bump.getID(), "view");
 	projLoc = glGetUniformLocation(bump.getID(), "projection");
 
-
 	myCamera.initCamera(glm::vec3(2, 0, -4), 70.0f, (float)_gameDisplay.getWidth() / _gameDisplay.getHeight(), 0.01f, 1000.0f);
 
 	counter = 1.0f;
@@ -156,16 +156,30 @@ void MainGame::initSystems()
 
 	meshQuad.loadVertexs(quadVerts, 6);
 
-	glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);          // floor at y=0
-	glm::vec4 L(lightPos.x, lightPos.y, lightPos.z, 1.0f);  // your point light
+	glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
+	glm::vec4 L(lightPos, 1.0f); // your point light
 
 	float d = glm::dot(plane, L);
+	
 	shadowMat = glm::mat4(
 		d - L.x * plane.x, -L.x * plane.y, -L.x * plane.z, -L.x * plane.w,
 		-L.y * plane.x, d - L.y * plane.y, -L.y * plane.z, -L.y * plane.w,
 		-L.z * plane.x, -L.z * plane.y, d - L.z * plane.z, -L.z * plane.w,
 		-L.w * plane.x, -L.w * plane.y, -L.w * plane.z, d - L.w * plane.w
 	);
+
+	glm::vec4 wallXposPlane(1.0f, 0.0f, 0.0f, -25.0f);
+	float dXpos = glm::dot(wallXposPlane, L);
+	shadowMatWallXpos = glm::mat4(
+		dXpos - L.x * wallXposPlane.x, -L.x * wallXposPlane.y, -L.x * wallXposPlane.z, -L.x * wallXposPlane.w,
+		-L.y * wallXposPlane.x, dXpos - L.y * wallXposPlane.y, -L.y * wallXposPlane.z, -L.y * wallXposPlane.w,
+		-L.z * wallXposPlane.x, -L.z * wallXposPlane.y, dXpos - L.z * wallXposPlane.z, -L.z * wallXposPlane.w,
+		-L.w * wallXposPlane.x, -L.w * wallXposPlane.y, -L.w * wallXposPlane.z, dXpos - L.w * wallXposPlane.w
+	);
+
+	glm::vec4 wallXnegPlane(1.0f, 0.0f, 0.0f, 25.0f);
+	float dXneg = glm::dot(wallXnegPlane, L);
+
 }
 
 void MainGame::gameLoop()
@@ -452,70 +466,82 @@ void MainGame::drawGame()
 
 	meshQuad.drawVertexes();
 
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glDepthMask(GL_FALSE);
+	//Shadows
 
-	//shadowShader.Bind();
-	//shadowShader.setMat4("view", myCamera.getView());
-	//shadowShader.setMat4("projection", myCamera.getProjection());
-	//shadowShader.setFloat("shadowAlpha", 0.5f);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthMask(GL_FALSE);
 
-	////Floor Shadow
-	//transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
-	//transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f));
-	//{
-	//	glm::mat4 flat = shadowMat * transform.GetModel();
-	//	shadowShader.setMat4("model", flat);
-	//	meshQuad.drawVertexes();
-	//}
+	shadowShader.Bind();
+	shadowShader.setMat4("view", myCamera.getView());
+	shadowShader.setMat4("projection", myCamera.getProjection());
+	shadowShader.setFloat("shadowAlpha", 0.5f);
 
-	//// Wall1 Shadow
-	//transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
-	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMat * transform.GetModel();
-	//	shadowShader.setMat4("model", flat);
-	//	meshQuad.drawVertexes();
-	//}
+	//Floor Shadow
+	transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
+	transform.SetRot(glm::vec3(0.0f, 0.0f, 0.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 50.0f));
+	
+	{
+		glm::mat4 flat = shadowMat * transform.GetModel();
 
-	//// Wall2 Shadow
-	//transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
-	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMat * transform.GetModel();
-	//	shadowShader.setMat4("model", flat);
-	//	meshQuad.drawVertexes();
-	//}
+		float yOffset = -2.39f;
+		glm::mat4 adjustY = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, yOffset, 0.0f));
 
-	//// Wall3 Shadow
-	//transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
-	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMat * transform.GetModel();
-	//	shadowShader.setMat4("model", flat);
-	//	meshQuad.drawVertexes();
-	//}
-	//
-	//// Wall4 Shadow
-	//transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
-	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMat * transform.GetModel();
-	//	shadowShader.setMat4("model", flat);
-	//	meshQuad.drawVertexes();
-	//}
+		glm::mat4 flatAdjusted = adjustY * flat;
+
+		shadowShader.setMat4("model", flatAdjusted);
+		meshQuad.drawVertexes();
+	}
+
+	// Wall1 Shadow
+	transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
+	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	{
+		glm::mat4 flat = shadowMatWallXpos * transform.GetModel();
+		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { -0.01f, 0, 0 }); 
+		shadowShader.setMat4("model",adjust * flat);
+		meshQuad.drawVertexes();
+	}
+
+	// Wall2 Shadow
+	transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
+	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	{
+		glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
+		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { +0.01f, 0, 0 });
+		shadowShader.setMat4("model", adjust* flat);
+		meshQuad.drawVertexes();
+	}
+
+	// Wall3 Shadow
+	transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
+	transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	{
+		glm::mat4 flat = shadowMatWallZpos * transform.GetModel();
+		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, -0.01f });
+		shadowShader.setMat4("model", adjust* flat);
+		meshQuad.drawVertexes();
+	}
+	
+	// Wall4 Shadow
+	transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
+	transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
+	transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	{
+		glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
+		glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, +0.01f });
+		shadowShader.setMat4("model", adjust* flat);
+		meshQuad.drawVertexes();
+	}
+
+	glDepthMask(GL_TRUE);
+	glDisable(GL_BLEND);
 
 	counter = counter + 0.03f;
-
-				
-	glEnableClientState(GL_COLOR_ARRAY); 
-	glEnd();
 
 	_gameDisplay.swapBuffer();
 } 
