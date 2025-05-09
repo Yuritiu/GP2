@@ -69,6 +69,7 @@ void MainGame::initSystems()
 
 	GLint loc;
 
+	//noBump Used early on and for testing
 	//noBump.Bind();
 	//
 	//glUniform1i(glGetUniformLocation(noBump.getID(), "diffuse"), 0);
@@ -96,7 +97,6 @@ void MainGame::initSystems()
 	loc = glGetUniformLocation(bump.getID(), "viewPos");
 	glUniform3f(loc, myCamera.getPos().x, myCamera.getPos().y, myCamera.getPos().z);
 
-	// Ambient–Diffuse–Specular settings
 	loc = glGetUniformLocation(bump.getID(), "lightPos");
 	glUniform3f(loc, 0.0f, 50.0f, 0.0f);   // light position
 	loc = glGetUniformLocation(bump.getID(), "lightColor");
@@ -111,7 +111,7 @@ void MainGame::initSystems()
 	glUniform1f(lLoc, 0.014f);
 	glUniform1f(qLoc, 0.0007f);
 
-	// Cache locations for uniforms you’ll update each frame
+	// locations for uniforms to update each frame
 	tilingLoc = glGetUniformLocation(bump.getID(), "tiling");
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 	modelLoc = glGetUniformLocation(bump.getID(), "model");
@@ -123,7 +123,8 @@ void MainGame::initSystems()
 	counter = 1.0f;
 
 	//Walls and floor
-	Vertex quadVerts[6] = {
+	Vertex quadVerts[6] = 
+	{
 		// triangle 1
 		Vertex({-0.5f, 0.0f, -0.5f}, {0.0f, 0.0f}),
 		Vertex({-0.5f, 0.0f,  0.5f}, {0.0f, 1.0f}),
@@ -135,7 +136,8 @@ void MainGame::initSystems()
 	};
 	for (auto& v : quadVerts) v.normal = { 0,1,0 };
 
-	for (size_t i = 0; i < 6; i += 3) {
+	for (size_t i = 0; i < 6; i += 3) 
+	{
 		Vertex& v0 = quadVerts[i + 0];
 		Vertex& v1 = quadVerts[i + 1];
 		Vertex& v2 = quadVerts[i + 2];
@@ -159,14 +161,14 @@ void MainGame::initSystems()
 
 	meshQuad.loadVertexs(quadVerts, 6);
 
-
 	// shadows
 	glm::vec4 plane(0.0f, 1.0f, 0.0f, 0.0f);
 	glm::vec4 L(lightPos, 1.0f); 
 
 	float d = glm::dot(plane, L);
 	
-	shadowMat = glm::mat4(
+	shadowMat = glm::mat4
+	(
 		d - L.x * plane.x, -L.x * plane.y, -L.x * plane.z, -L.x * plane.w,
 		-L.y * plane.x, d - L.y * plane.y, -L.y * plane.z, -L.y * plane.w,
 		-L.z * plane.x, -L.z * plane.y, d - L.z * plane.z, -L.z * plane.w,
@@ -175,7 +177,9 @@ void MainGame::initSystems()
 
 	glm::vec4 wallXposPlane(1.0f, 0.0f, 0.0f, -25.0f);
 	float dXpos = glm::dot(wallXposPlane, L);
-	shadowMatWallXpos = glm::mat4(
+	
+	shadowMatWallXpos = glm::mat4
+	(
 		dXpos - L.x * wallXposPlane.x, -L.x * wallXposPlane.y, -L.x * wallXposPlane.z, -L.x * wallXposPlane.w,
 		-L.y * wallXposPlane.x, dXpos - L.y * wallXposPlane.y, -L.y * wallXposPlane.z, -L.y * wallXposPlane.w,
 		-L.z * wallXposPlane.x, -L.z * wallXposPlane.y, dXpos - L.z * wallXposPlane.z, -L.z * wallXposPlane.w,
@@ -191,26 +195,24 @@ void MainGame::initSystems()
 
 	glGenTextures(1, &reflectTex);
 	glBindTexture(GL_TEXTURE_2D, reflectTex);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight,
-		0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, screenWidth, screenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glGenFramebuffers(1, &reflectFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, reflectFBO);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-		GL_TEXTURE_2D, reflectTex, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, reflectTex, 0);
 	
 	GLuint depthRBO;
 	glGenRenderbuffers(1, &depthRBO);
 	glBindRenderbuffer(GL_RENDERBUFFER, depthRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
-		screenWidth, screenHeight);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-		GL_RENDERBUFFER, depthRBO);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, screenWidth, screenHeight);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRBO);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		std::cerr << "Reflection FBO not complete!\n";
+	{
+		std::cout << "Reflection FBO not complete!" << std::endl;
+	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -257,11 +259,11 @@ void MainGame::processInput(float deltaTime)
 	
 	const float mouseSensitivity = 0.1f;
 
-	// get relative motion since last frame
+	// get motion since last frame
 	int xrel, yrel;
 	SDL_GetRelativeMouseState(&xrel, &yrel);
 
-	// turn the camera: xrel → yaw, yrel → pitch (invert Y so moving mouse up looks up)
+	// turn the camera
 	myCamera.rotate(xrel * mouseSensitivity,-yrel * mouseSensitivity);
 
 	// forward/back
@@ -375,37 +377,51 @@ void MainGame::drawGame()
 	glDepthMask(GL_TRUE);
 
 	// Reflection
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectFBO);
+	glViewport(0, 0, screenWidth, screenHeight);
+	glClearColor(0.8f, 0.8f, 0.8f, 1.0f); 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// mirrored view
 	glm::mat4 V = myCamera.getView();
-
-	// 2) Extract the forward (–Z) direction from it:
-	glm::vec3 camDir = glm::normalize(glm::vec3(
-		-V[0][2],
-		-V[1][2],
-		-V[2][2]
-	));
-
-	// 3) Compute lookAt
+	glm::vec3 forward = normalize(glm::vec3(-V[0][2], -V[1][2], -V[2][2]));
 	glm::vec3 camPos = myCamera.getPos();
-	glm::vec3 lookAt = camPos + camDir;
-
-	// 4) Mirror across your floor plane at y = h
+	glm::vec3 lookAt = camPos + forward;
 	float h = -2.5f;
 	glm::vec3 mirPos = { camPos.x, 2 * h - camPos.y, camPos.z };
-	glm::vec3 mirLook = { lookAt.x, 2 * h - lookAt.y, lookAt.z };
-	glm::vec3 mirUp = { 0, -1, 0 };
+	glm::vec3 mirLook = { lookAt.x,2 * h - lookAt.y,lookAt.z };
+	glm::mat4 mirView = glm::lookAt(mirPos, mirLook, { 0,1,0 });
 
-	// 5) Build mirrored view:
-	glm::mat4 mirView = glm::lookAt(mirPos, mirLook, mirUp);
+	glBindFramebuffer(GL_FRAMEBUFFER, reflectFBO);
+	glViewport(0, 0, screenWidth, screenHeight);
+	glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	glm::vec4 clipPlane(0.0f, 1.0f, 0.0f, 2.5f);
+	glUniform4f
+	(
+		glGetUniformLocation(bump.getID(), "clipPlane"),
+		clipPlane.x, clipPlane.y, clipPlane.z, clipPlane.w
+	);
 
-	// Then bind your FBO and render with:
-	bump.Bind();
-	bump.setMat4("view", mirView);
-	bump.setMat4("projection", myCamera.getProjection());
+	//skybox in mirror
+	glDepthMask(GL_FALSE);
+	
+	glm::mat4 skyView = glm::mat4(glm::mat3(mirView));
+	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.getCubeMapTexture());
+	skybox.drawReflect(mirView, myCamera.getProjection());
 
+	glDepthMask(GL_TRUE);
+
+
+	glEnable(GL_CLIP_DISTANCE0);
+	drawSceneWithBump(mirView);
+	glDisable(GL_CLIP_DISTANCE0);
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, screenWidth, screenHeight);
-
-
 
 	// Bind the shader 
 	bump.Bind();                                       
@@ -416,15 +432,84 @@ void MainGame::drawGame()
 		std::cout << "lightPos uniform not found in bump shader" << std::endl;
 	}
 	else {
-		// use whatever lightPos you want here:
 		glm::vec3 lightPos(5.0f, 20.0f, 5.0f);
 		glUniform3f(loc, lightPos.x, lightPos.y, lightPos.z);
 	}
 
 	GLint locD = glGetUniformLocation(bump.getID(), "diffuse");
-	glUniform1i(locD, 0); // sampler2D diffuse  → texture unit 0
+	glUniform1i(locD, 0); 
 	GLint locN = glGetUniformLocation(bump.getID(), "normalT");
-	glUniform1i(locN, 1); // sampler2D normalT  → texture unit 1
+	glUniform1i(locN, 1); 
+
+	drawSceneWithBump(myCamera.getView());
+
+	//// Wall1 Shadow (test)
+	//transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
+	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
+	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
+	//{
+	//	glm::mat4 flat = shadowMatWallXpos * transform.GetModel();
+	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { -0.01f, 0, 0 }); 
+	//	shadowShader.setMat4("model",adjust * flat);
+	//	meshQuad.drawVertexes();
+	//}
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);         
+
+	reflectShader.Bind();
+
+	reflectShader.setBool("usePlanar", true);
+	reflectShader.setInt("reflectTex", 1);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, reflectTex);
+
+	// Upload camera matrices
+	reflectShader.setMat4("view", myCamera.getView());
+	reflectShader.setMat4("projection", myCamera.getProjection());
+
+	Transform floorT;
+	floorT.SetPos(glm::vec3( 0, 2.5, 10 ));
+	floorT.SetRot(glm::vec3(-glm::half_pi<float>(), 0, 0 ));
+	floorT.SetScale(glm::vec3(10, 5, 10 ));
+	reflectShader.setMat4("model", floorT.GetModel());
+
+	meshQuad.drawVertexes();
+
+	glEnable(GL_DEPTH_TEST);
+
+	reflectShader.Bind();
+
+	reflectShader.setBool("usePlanar", false);
+	reflectShader.setInt("skybox", 0);
+	reflectShader.setVec3("cameraPos", myCamera.getPos());
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.getCubeMapTexture());
+
+	reflectShader.setMat4("view", myCamera.getView());
+	reflectShader.setMat4("projection", myCamera.getProjection());
+
+	glDepthMask(GL_TRUE);  
+
+	counter = counter + 0.03f;
+
+	_gameDisplay.swapBuffer();
+} 
+
+void MainGame::drawSceneWithBump(const glm::mat4& viewMatrix) {
+	// Bind bump shader and set all uniforms
+	bump.Bind();
+	bump.setMat4("view", viewMatrix);
+	bump.setMat4("projection", myCamera.getProjection());
+	bump.setVec3("lightPos", lightPos);
+	bump.setVec3("viewPos", viewMatrix[3]); 
+	bump.setFloat("lightConstant", 1.0f);
+	bump.setFloat("lightLinear", 0.005f);
+	bump.setFloat("lightQuadratic", 0.0001f);
+	glUniform1f(glGetUniformLocation(bump.getID(), "brightness"), 1.0f);
+	glUniform2f(glGetUniformLocation(bump.getID(), "tiling"), 1.0f, 1.0f);
 
 	//floor
 	transform.SetPos(glm::vec3(0.0f, -2.5f, 0.0f));
@@ -459,7 +544,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
-	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	glUniform2f(tilingLoc, 50.0f, 7.0f);
 
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
@@ -482,7 +567,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
-	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	glUniform2f(tilingLoc, 50.0f, 7.0f);
 
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
@@ -505,7 +590,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
-	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	glUniform2f(tilingLoc, 50.0f, 7.0f);
 
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
@@ -528,7 +613,7 @@ void MainGame::drawGame()
 	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getView()));
 	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(myCamera.getProjection()));
 
-	glUniform2f(tilingLoc, 50.0f, 5.0f);
+	glUniform2f(tilingLoc, 50.0f, 7.0f);
 
 	viewPosLoc = glGetUniformLocation(bump.getID(), "viewPos");
 
@@ -568,7 +653,7 @@ void MainGame::drawGame()
 	glActiveTexture(GL_TEXTURE1);
 	monkeyN.Bind(1);
 	glUniform1i(glGetUniformLocation(bump.getID(), "normalT"), 1);
-	
+
 	glUniform3f(glGetUniformLocation(bump.getID(), "diffuseColor"), 0.8f, 0.1f, 0.1f);
 	glUniform3f(glGetUniformLocation(bump.getID(), "specColor"), 1.0f, 1.0f, 1.0f);
 	glUniform1f(glGetUniformLocation(bump.getID(), "shininess"), 32.0f);
@@ -577,24 +662,22 @@ void MainGame::drawGame()
 
 	mesh1.draw();
 
-	//Shadows
+	glUniform1f(glGetUniformLocation(bump.getID(), "brightness"), 1.0f);
+	glUniform2f(tilingLoc, 1, 1);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glDepthMask(GL_FALSE);
+	//Shadows
 
 	shadowShader.Bind();
 	shadowShader.setMat4("view", myCamera.getView());
 	shadowShader.setMat4("projection", myCamera.getProjection());
 	shadowShader.setFloat("shadowAlpha", 0.8f);
 
-	// small lift to avoid z-fight
 	glm::mat4 adjustY = glm::translate(glm::mat4(1.0f), glm::vec3(0, -2.39f, 0));
 
 	//Project monkey onto floor
 	{
 		Transform monkeyT;
-		monkeyT.SetPos(glm::vec3(0, 0, 0));       
+		monkeyT.SetPos(glm::vec3(0, 0, 0));
 		monkeyT.SetRot(glm::vec3(0, counter, 0));
 		monkeyT.SetScale(glm::vec3(0.8f));
 
@@ -603,83 +686,9 @@ void MainGame::drawGame()
 		// Flatten onto floor plane
 		glm::mat4 flat = shadowMat * monkeyModel;
 
-		// Apply small Y-offset
+		// Apply Y-offset
 		shadowShader.setMat4("model", adjustY * flat);
 
-		// Draw only the monkey’s mesh
 		mesh1.draw();
 	}
-
-	//// Wall1 Shadow
-	//transform.SetPos(glm::vec3(25.0f, -1.25f, 0.0f));
-	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, glm::radians(90.0f)));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMatWallXpos * transform.GetModel();
-	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { -0.01f, 0, 0 }); 
-	//	shadowShader.setMat4("model",adjust * flat);
-	//	meshQuad.drawVertexes();
-	//}
-
-	//// Wall2 Shadow
-	//transform.SetPos(glm::vec3(-25.0f, -1.25f, 0.0f));
-	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, glm::radians(-90.0f)));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
-	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { +0.01f, 0, 0 });
-	//	shadowShader.setMat4("model", adjust* flat);
-	//	meshQuad.drawVertexes();
-	//}
-
-	//// Wall3 Shadow
-	//transform.SetPos(glm::vec3(0.0f, -1.25f, 25.0f));
-	//transform.SetRot(glm::vec3(glm::radians(-90.0f), 0.0f, 0.0f));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMatWallZpos * transform.GetModel();
-	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, -0.01f });
-	//	shadowShader.setMat4("model", adjust* flat);
-	//	meshQuad.drawVertexes();
-	//}
-	//
-	//// Wall4 Shadow
-	//transform.SetPos(glm::vec3(0.0f, -1.25f, -25.0f));
-	//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
-	//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-	//{
-	//	glm::mat4 flat = shadowMatWallXneg * transform.GetModel();
-	//	glm::mat4 adjust = glm::translate(glm::mat4(1.0f), { 0, 0, +0.01f });
-	//	shadowShader.setMat4("model", adjust* flat);
-	//	meshQuad.drawVertexes();
-	//}
-
-
-	// Bind a simple textured‐quad shader for the reflection
-	reflectShader.Bind();
-	reflectShader.setMat4("view", myCamera.getView());
-	reflectShader.setMat4("projection", myCamera.getProjection());
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, reflectTex);
-	reflectShader.setInt("reflectTex", 0);
-
-	Transform t;
-	t.SetPos(glm::vec3(0.0f, 0.0f, 10.0f));
-	t.SetRot((glm::vec3(-glm::half_pi<float>(), 0, 0)));
-	t.SetScale((glm::vec3(10, 10, 5)));
-
-//transform.SetRot(glm::vec3(glm::radians(90.0f), 0.0f, 0.0f));
-//transform.SetScale(glm::vec3(50.0f, 1.0f, 2.5f));
-
-	reflectShader.setMat4("model", t.GetModel());
-	meshQuad.drawVertexes();
-
-
-	glDepthMask(GL_TRUE);
-	glDisable(GL_BLEND);
-
-	counter = counter + 0.03f;
-
-	_gameDisplay.swapBuffer();
-} 
+}

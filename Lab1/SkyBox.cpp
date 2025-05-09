@@ -23,7 +23,6 @@ void SkyBox::init(const std::vector<std::string>& faces)
     GLint loc = glGetUniformLocation(shader.getID(), "skybox");
     glUniform1i(loc, 0);  
 
-    // Prepare cube geometry
     setupMesh();
 }
 
@@ -54,6 +53,20 @@ void SkyBox::draw(const Camera& camera)
     glEnable(GL_CULL_FACE);
 }
 
+void SkyBox::drawReflect(const glm::mat4& view, const glm::mat4& projection) 
+{
+    glDepthFunc(GL_LEQUAL);
+    shader.Bind();  
+    shader.setMat4("view", glm::mat4(glm::mat3(view)));  
+    shader.setMat4("projection", projection);
+    glBindVertexArray(_vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
+}
+
 GLuint SkyBox::loadCubemap(const std::vector<std::string>& faces) 
 {
     GLuint texID;
@@ -65,20 +78,16 @@ GLuint SkyBox::loadCubemap(const std::vector<std::string>& faces)
         int w, h, n;
         unsigned char* data = stbi_load(faces[i].c_str(), &w, &h, &n, 0);
         
-        /*std::cout << "Loading face[" << i << "] = " << faces[i]
-            << " (" << w << "x" << h << ", " << n << " channels) → "
-                << (data ? "OK" : "FAILED") << "\n";*/
-
         if (data) {
-            // choose the right format
             GLenum fmt = (n == 4 ? GL_RGBA : GL_RGB);
             glTexImage2D(
                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0,             // level
-                fmt,           // internal format
-                w, h,
-                0,             // border
-                fmt,           // source format
+                0,
+                fmt,
+                w, 
+                h,
+                0,
+                fmt,
                 GL_UNSIGNED_BYTE,
                 data
             );

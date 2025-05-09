@@ -6,9 +6,12 @@ layout(location = 2) in vec3 aNormal;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
 
+out float clipDistance;
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec4 clipPlane; 
 
 out VS_OUT {
     vec2  tC;
@@ -17,6 +20,11 @@ out VS_OUT {
 } vs_out;
 
 void main() {
+    
+    vec4 worldPos = model * vec4(aPos,1);
+    clipDistance = dot(clipPlane, worldPos);
+    gl_Position = projection * view * worldPos;
+    
     vs_out.tC = aTexCoord;
     vs_out.FragPos = vec3(model * vec4(aPos, 1.0));
 

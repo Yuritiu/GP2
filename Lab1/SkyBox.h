@@ -13,11 +13,12 @@ public:
     SkyBox() = default;
     ~SkyBox();
 
-    // Initialize with 6 cubemap faces (order: +X, -X, +Y, -Y, +Z, -Z)
     void init(const std::vector<std::string>& faces);
 
-    // Draw the skybox using the provided camera
     void draw(const Camera& camera);
+    void drawReflect(const glm::mat4& view, const glm::mat4& projection);
+
+    GLuint getCubeMapTexture() const { return cubemapTexture; }
 
 private:
     GLuint loadCubemap(const std::vector<std::string>& faces);

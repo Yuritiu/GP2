@@ -8,7 +8,7 @@ void Mesh::loadVertexs(Vertex* vertices, unsigned int numVertices)
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
 
-	glGenBuffers(NUM_BUFFERS, vertexArrayBuffers); //generate our buffers based of our array of data/buffers - GLuint vertexArrayBuffers[NUM_BUFFERS];
+	glGenBuffers(NUM_BUFFERS, vertexArrayBuffers); //generate buffers based of array of data/buffers - GLuint vertexArrayBuffers[NUM_BUFFERS];
 	glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[POSITION_VERTEXBUFFER]); //tell opengl what type of data the buffer is (GL_ARRAY_BUFFER), and pass the data
     glBufferData(GL_ARRAY_BUFFER, numVertices * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 
@@ -97,7 +97,7 @@ void Mesh::initModel(const IndexedModel& model)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexArrayBuffers[INDEX_VB]); //tell opengl what type of data the buffer is (GL_ARRAY_BUFFER), and pass the data
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.indices.size() * sizeof(model.indices[0]), &model.indices[0], GL_STATIC_DRAW); //move the data to the GPU - type of data, size of data, starting address (pointer) of data, where do we store the data on the GPU
 
-	glBindVertexArray(0); // unbind our VAO
+	glBindVertexArray(0);
 }
 
 Mesh::Mesh()
@@ -122,7 +122,6 @@ void Mesh::draw()
 	glBindVertexArray(vertexArrayObject);
 
 	glDrawElements(GL_TRIANGLES, drawCount, GL_UNSIGNED_INT, 0);
-	//glDrawArrays(GL_TRIANGLES, 0, drawCount);
 
 	glBindVertexArray(0);
 }
